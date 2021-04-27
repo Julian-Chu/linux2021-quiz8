@@ -1,4 +1,4 @@
-* A concurrent single-producer, multiple-consumer (SPMC) queue using C11
+/* A concurrent single-producer, multiple-consumer (SPMC) queue using C11
  * Atomics. It is lock-free and atomic, allowing one enqueue-caller/producer,
  * arbitrary amount of dequeue-callers/consumers.
  *
@@ -105,7 +105,8 @@ bool spmc_enqueue(spmc_ref_t spmc, uintptr_t element)
         atomic_load_explicit(&spmc->curr_enqueue, memory_order_relaxed);
     size_t idx;
 retry:
-    idx = atomic_load_explicit(AAA, memory_order_consume);
+    /* idx = atomic_load_explicit(AAA, memory_order_consume); */
+    idx = atomic_load_explicit(&node->back, memory_order_consume);
     if (!IS_WRITABLE(idx, node)) {
         spmc_node_t *const next =
             atomic_load_explicit(&node->next, memory_order_relaxed);
@@ -132,7 +133,8 @@ retry:
     }
     node->buf[INDEX_OF(idx, node)] = element;
     atomic_store_explicit(&spmc->curr_enqueue, node, memory_order_relaxed);
-    atomic_fetch_add_explicit(BBB, CCC, memory_order_release);
+    /* atomic_fetch_add_explicit(BBB, CCC, memory_order_release); */
+    atomic_fetch_add_explicit(&node->back, 1, memory_order_release);
     return true;
 }
 
@@ -144,7 +146,8 @@ bool spmc_dequeue(spmc_ref_t spmc, uintptr_t *slot)
     size_t idx;
 no_increment:
     do {
-        idx = atomic_load_explicit(DDD, memory_order_consume);
+        /* idx = atomic_load_explicit(DDD, memory_order_consume); */
+        idx = atomic_load_explicit(&node->front, memory_order_consume);
         if (!IS_READABLE(idx, node)) {
             if (node != spmc->curr_enqueue)
                 atomic_compare_exchange_strong(
@@ -154,7 +157,8 @@ no_increment:
         } else
             *slot = node->buf[INDEX_OF(idx, node)];
     } while (
-        !atomic_compare_exchange_weak(EEE, &(size_t){idx}, idx + 1));
+        /* !atomic_compare_exchange_weak(EEE, &(size_t){idx}, idx + 1)); */
+        !atomic_compare_exchange_weak(&node->front, &(size_t){idx}, idx + 1));
     return true;
 }
 
