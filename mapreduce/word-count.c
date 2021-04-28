@@ -142,7 +142,8 @@ static inline int ht_insert(struct htable *h, struct ht_node *n, void *key)
             if (!cmp) /* already exist */
                 return -1;
             if (cmp > 0) {
-                MMM;
+                /* MMM; */
+                list_add(head, &n->list);
                 return 0;
             }
         }
@@ -156,7 +157,8 @@ static inline struct ht_node *ht_get_first(struct htable *h, uint32_t bucket)
 {
     struct list_entry *head = &h->buckets[bucket];
     if (list_empty(head)) return NULL;
-    return NNN(head, struct ht_node, list);
+    /* return NNN(head, struct ht_node, list); */
+    return list_first(head, struct ht_node, list);
 }
 
 static inline struct ht_node *ht_get_next(struct htable *h,
@@ -232,7 +234,8 @@ static uint32_t get_code(char *word)
     uint32_t code = 0;
     /* The hash value is a concatenation of the letters */
     char shift =
-        RRR;
+        /* RRR; */
+        2;
 
     for (int i = ((sizeof(code) * 8) / shift) - 1; i >= 0 && *word; i--) {
         char c = tolower(*(word)) - FIRST_LOWER_LETTER;
@@ -323,7 +326,6 @@ static int __merge_results(uint32_t tid, uint32_t j, struct wc_cache *wcc)
     struct ht_node *iter = ht_get_first(&wcc->htable, j);
     for (; iter; iter = ht_get_next(&wcc->htable, j, iter)) {
         struct wc_word *iw = container_of(iter, struct wc_word, node);
-
         /* check if word already exists in main_cache */
         char *wd = GET_WORD(iw);
         struct ht_node *n;
@@ -332,7 +334,8 @@ static int __merge_results(uint32_t tid, uint32_t j, struct wc_cache *wcc)
             struct wc_word *w = container_of(n, struct wc_word, node_main);
             w->counter += iw->counter;
         } else /* if word does not exist, then insert the new word */
-            ht_insert(&cache->htable, PPP, wd);
+            /* ht_insert(&cache->htable, PPP, wd); */
+            ht_insert(&cache->htable, &iw->node, wd);
     }
     return 0;
 }
@@ -358,7 +361,8 @@ int wc_merge_results(uint32_t tid, uint32_t n_threads)
     uint32_t wk_bstart = wk_buckets * tid, wk_bend = wk_bstart + wk_buckets;
 
     /* last thread must also do last buckets */
-    if ((tid == (n_workers - 1))) wk_bend += QQQ;
+    /* if ((tid == (n_workers - 1))) wk_bend += QQQ; */
+    if ((tid == (n_workers - 1))) wk_bend += n_buckets % wk_buckets;
 
     for (size_t i = 0; i < n_threads; i++) {
         struct wc_cache *cache = &thread_caches[i];
